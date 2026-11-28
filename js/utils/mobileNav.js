@@ -59,10 +59,15 @@ export function initMobileNav() {
   // Re-sync drawer setelah JS halaman mengisi navbar (auth state)
   // Pakai MutationObserver agar sinkron meski navbar diisi async
   const navUser = document.querySelector('.navbar-user');
+  const navLinks = document.querySelector('.navbar-nav');
+  const observerCallback = () => {
+    if (!drawer.classList.contains('open')) syncDrawer();
+  };
+  const observerConfig = { childList: true, subtree: true };
   if (navUser) {
-    const observer = new MutationObserver(() => {
-      if (!drawer.classList.contains('open')) syncDrawer();
-    });
-    observer.observe(navUser, { childList: true, subtree: true });
+    new MutationObserver(observerCallback).observe(navUser, observerConfig);
+  }
+  if (navLinks) {
+    new MutationObserver(observerCallback).observe(navLinks, observerConfig);
   }
 }

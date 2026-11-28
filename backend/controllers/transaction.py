@@ -9,14 +9,13 @@ from utils import get_timestamp, generate_price_from_id, generate_payment_id
 router = APIRouter()
 
 # Katalog metode pembayaran — mengikuti Gramedia.com (Syarat & Ketentuan
-# gramedia.com dan panduan Gramedia Digital): Virtual Account (BCA,
-# Mandiri, BRI, BNI, Permata), Kartu Kredit/Debit (Visa/Mastercard),
-# e-wallet (GoPay, OVO, DANA, ShopeePay), dan QRIS (berlaku 30 menit,
-# Virtual Account 1 jam). Backend adalah sumber kebenaran tunggal:
+# gramedia.com dan panduan Gramedia Digital): QRIS (berlaku 30 menit) dan
+# Virtual Account (BCA, Mandiri, BRI, BNI, Permata; berlaku 1 jam).
+# Backend adalah sumber kebenaran tunggal:
 # frontend mengambil katalog ini lewat GET /api/payment-methods, dan
-# POST /api/transactions menolak metode di luar katalog. Nomor rekening,
-# nomor VA, dan nomor e-wallet di bawah ini hanya contoh untuk simulasi
-# tugas, bukan nomor asli.
+# POST /api/transactions menolak metode di luar katalog. Nomor rekening
+# dan nomor VA di bawah ini hanya contoh untuk simulasi tugas, bukan
+# nomor asli.
 PAYMENT_METHODS = [
     {
         "id": "qris",
@@ -102,55 +101,6 @@ PAYMENT_METHODS = [
             "owner": "TokoBuku Digital",
         },
         "expiryMinutes": 60,
-    },
-    {
-        "id": "gopay",
-        "label": "GoPay",
-        "short": "GoPay",
-        "group": "E-Wallet",
-        "kind": "ewallet",
-        "brand": "gopay",
-        "description": "Bayar dengan saldo GoPay",
-        "destination": {"name": "GoPay", "number": "0812-3456-7890"},
-    },
-    {
-        "id": "ovo",
-        "label": "OVO",
-        "short": "OVO",
-        "group": "E-Wallet",
-        "kind": "ewallet",
-        "brand": "ovo",
-        "description": "Bayar dengan saldo OVO",
-        "destination": {"name": "OVO", "number": "0812-3456-7891"},
-    },
-    {
-        "id": "dana",
-        "label": "DANA",
-        "short": "DANA",
-        "group": "E-Wallet",
-        "kind": "ewallet",
-        "brand": "dana",
-        "description": "Bayar dengan saldo DANA",
-        "destination": {"name": "DANA", "number": "0812-3456-7892"},
-    },
-    {
-        "id": "shopeepay",
-        "label": "ShopeePay",
-        "short": "ShopeePay",
-        "group": "E-Wallet",
-        "kind": "ewallet",
-        "brand": "shopeepay",
-        "description": "Bayar dengan saldo ShopeePay",
-        "destination": {"name": "ShopeePay", "number": "0812-3456-7893"},
-    },
-    {
-        "id": "card",
-        "label": "Kartu Kredit / Debit",
-        "short": "Kartu",
-        "group": "Kartu",
-        "kind": "card",
-        "brand": "card",
-        "description": "Visa / Mastercard",
     },
 ]
 
@@ -250,9 +200,16 @@ async def create_transaction(data: dict, authorization: Optional[str] = Header(N
         )
     )
 
-    # Transaksi dari keranjang sekaligus mengosongkan keranjang.
+    # Buku yang baru dibeli tidak boleh tertinggal di keranjang, supaya
+    # buku yang sama tidak bisa dibeli dua kali (misalnya: buku sudah ada
+    # di keranjang, lalu dibeli langsung dari halaman detail buku).
     if data.get("fromCart"):
         cursor.execute("DELETE FROM cart WHERE user_id = ?", (user["id"],))
+    else:
+        cursor.executemany(
+            "DELETE FROM cart WHERE user_id = ? AND book_id = ?",
+            [(user["id"], item["id"]) for item in items],
+        )
 
     conn.commit()
     conn.close()

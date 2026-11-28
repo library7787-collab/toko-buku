@@ -132,14 +132,17 @@ def main():
         if not token:
             return 1
 
-        # Katalog metode pembayaran (Gramedia: QRIS, VA, e-wallet, kartu).
+        # Katalog metode pembayaran (QRIS + Virtual Account).
         status, methods = http("GET", "/api/payment-methods")
         ids = [m.get("id") for m in methods] if isinstance(methods, list) else []
         check("GET /api/payment-methods mengembalikan katalog",
               status == 200 and all(x in ids for x in
-                  ["qris", "va_bca", "va_mandiri", "va_bri", "va_bni", "va_permata",
-                   "gopay", "ovo", "dana", "shopeepay", "card"]),
+                  ["qris", "va_bca", "va_mandiri", "va_bri", "va_bni", "va_permata"]),
               f"status={status}, ids={ids}")
+        check("metode E-Wallet & Kartu/Debit sudah dihapus",
+              not any(x in ids for x in
+                  ["gopay", "ovo", "dana", "shopeepay", "card"]),
+              f"ids={ids}")
 
         # Metode di luar katalog harus ditolak 400.
         status, body = http("POST", "/api/transactions", {

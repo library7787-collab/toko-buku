@@ -70,14 +70,6 @@ export async function loginRequest(emailOrUsername, password) {
       throw new Error(data.detail || 'Login gagal!');
     }
 
-    // Store token and user data
-    if (data.token) {
-      localStorage.setItem(CONFIG.TOKEN_KEY, data.token);
-    }
-    if (data.user) {
-      localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(data.user));
-    }
-
     return data;
   } catch (error) {
     console.error('Login error:', error);

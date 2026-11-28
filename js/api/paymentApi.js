@@ -17,9 +17,8 @@ function getAuthHeader() {
  * tetap bisa menampilkan pilihan. Sumber kebenaran tetap backend: server
  * menolak metode di luar katalog saat checkout disimpan.
  *
- * Mengikuti Gramedia.com: QRIS, Virtual Account (BCA, Mandiri, BRI, BNI,
- * Permata), Kartu Kredit/Debit (Visa/Mastercard), dan E-Wallet (GoPay,
- * OVO, DANA, ShopeePay).
+ * Mengikuti Gramedia.com: QRIS dan Virtual Account (BCA, Mandiri, BRI,
+ * BNI, Permata).
  */
 export const PAYMENT_METHODS_FALLBACK = [
   {
@@ -50,7 +49,7 @@ export const PAYMENT_METHODS_FALLBACK = [
     group: 'Virtual Account',
     kind: 'va',
     brand: 'mandiri',
-    description: 'Bayar via Livin' by Mandiri atau ATM Mandiri',
+    description: "Bayar via Livin' by Mandiri atau ATM Mandiri",
     destination: { name: 'Mandiri Virtual Account', number: '1370012345678', owner: 'TokoBuku Digital' },
     expiryMinutes: 60,
   },
@@ -87,55 +86,6 @@ export const PAYMENT_METHODS_FALLBACK = [
     destination: { name: 'Permata Virtual Account', number: '0001234567890', owner: 'TokoBuku Digital' },
     expiryMinutes: 60,
   },
-  {
-    id: 'gopay',
-    label: 'GoPay',
-    short: 'GoPay',
-    group: 'E-Wallet',
-    kind: 'ewallet',
-    brand: 'gopay',
-    description: 'Bayar dengan saldo GoPay',
-    destination: { name: 'GoPay', number: '0812-3456-7890' },
-  },
-  {
-    id: 'ovo',
-    label: 'OVO',
-    short: 'OVO',
-    group: 'E-Wallet',
-    kind: 'ewallet',
-    brand: 'ovo',
-    description: 'Bayar dengan saldo OVO',
-    destination: { name: 'OVO', number: '0812-3456-7891' },
-  },
-  {
-    id: 'dana',
-    label: 'DANA',
-    short: 'DANA',
-    group: 'E-Wallet',
-    kind: 'ewallet',
-    brand: 'dana',
-    description: 'Bayar dengan saldo DANA',
-    destination: { name: 'DANA', number: '0812-3456-7892' },
-  },
-  {
-    id: 'shopeepay',
-    label: 'ShopeePay',
-    short: 'ShopeePay',
-    group: 'E-Wallet',
-    kind: 'ewallet',
-    brand: 'shopeepay',
-    description: 'Bayar dengan saldo ShopeePay',
-    destination: { name: 'ShopeePay', number: '0812-3456-7893' },
-  },
-  {
-    id: 'card',
-    label: 'Kartu Kredit / Debit',
-    short: 'Kartu',
-    group: 'Kartu',
-    kind: 'card',
-    brand: 'card',
-    description: 'Visa / Mastercard',
-  },
 ];
 
 /**
@@ -145,6 +95,13 @@ export const PAYMENT_METHODS_FALLBACK = [
 export const LEGACY_METHOD_LABELS = {
   bca: 'Transfer Bank BCA',
   mandiri: 'Transfer Bank Mandiri',
+  // Metode yang sudah dihapus dari katalog, tetap diberi label supaya
+  // transaksi lama di Riwayat Pembelian tidak tampil sebagai ID mentah.
+  gopay: 'GoPay',
+  ovo: 'OVO',
+  dana: 'DANA',
+  shopeepay: 'ShopeePay',
+  card: 'Kartu Kredit / Debit',
 };
 
 /**
@@ -174,7 +131,12 @@ let paymentMethodsCache = null;
 export async function getPaymentMethods() {
   if (paymentMethodsCache) return paymentMethodsCache;
   try {
-    const response = await fetch(`${API_URL}/api/payment-methods`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // timeout 3 detik
+    const response = await fetch(`${API_URL}/api/payment-methods`, {
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
     if (response.ok) {
       const data = await response.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -183,7 +145,7 @@ export async function getPaymentMethods() {
       }
     }
   } catch (error) {
-    console.error('Get payment methods error:', error);
+    console.error('Get payment methods error (pakai fallback):', error);
   }
   paymentMethodsCache = PAYMENT_METHODS_FALLBACK;
   return paymentMethodsCache;

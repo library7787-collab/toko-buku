@@ -31,7 +31,9 @@ export function getToken() {
 
 export function getUser() {
   try {
-    const userRaw = localStorage.getItem(ACTIVE_USER_KEY);
+    // Coba baca dari ACTIVE_USER_KEY dulu, lalu fallback ke USER_KEY (data lama)
+    const userRaw = localStorage.getItem(ACTIVE_USER_KEY)
+      || localStorage.getItem(CONFIG.USER_KEY);
     return userRaw ? JSON.parse(userRaw) : null;
   } catch (error) {
     console.error('Failed to parse user from localStorage:', error);

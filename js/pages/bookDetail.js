@@ -8,6 +8,17 @@ import { getUser, isAuthenticated, isGuest, clearAuth, redirectIfAdmin } from '.
 // Admin tidak boleh di halaman ini
 redirectIfAdmin();
 
+// Escape teks sebelum dimasukkan ke innerHTML (cegah XSS).
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[char]);
+}
+
 const breadcrumbTitle   = document.getElementById('breadcrumbTitle');
 const bookDetailWrapper = document.getElementById('bookDetailWrapper');
 const authNavContainer  = document.getElementById('authNavContainer');
@@ -55,7 +66,7 @@ function initNavbarAuth() {
     const user = getUser();
     const displayName = user?.fullName || user?.email || 'Akun Saya';
     authNavContainer.innerHTML = `
-      <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Halo, ${displayName}</span>
+      <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Halo, ${escapeHtml(displayName)}</span>
       <button class="btn btn-outline" id="btnLogout" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Keluar</button>
     `;
     document.getElementById('btnLogout')?.addEventListener('click', () => {
@@ -151,9 +162,9 @@ async function loadBookDetail() {
         </div>
 
         <div class="book-detail-info">
-          <span class="book-detail-category-badge">${book.categories.join(', ')}</span>
-          <h1 class="book-detail-title">${book.title}</h1>
-          <p class="book-detail-authors">Oleh: <strong>${book.authors.join(', ')}</strong></p>
+          <span class="book-detail-category-badge">${escapeHtml(book.categories.join(', '))}</span>
+          <h1 class="book-detail-title">${escapeHtml(book.title)}</h1>
+          <p class="book-detail-authors">Oleh: <strong>${escapeHtml(book.authors.join(', '))}</strong></p>
 
           <div class="book-detail-price">
             ${formatRupiah(book.price)}
