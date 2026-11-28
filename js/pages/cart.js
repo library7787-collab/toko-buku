@@ -35,6 +35,7 @@ function escapeHtml(value) {
 // ---- Guard: hanya user login yang bisa akses cart ----
 if (!isAuthenticated()) {
   window.location.href = `login.html?redirect=cart.html`;
+  throw new Error('Redirect to login');
 }
 
 // Admin tidak boleh di halaman ini

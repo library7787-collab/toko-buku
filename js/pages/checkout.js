@@ -43,8 +43,8 @@ const paymentDetailBody  = document.getElementById("paymentDetailBody");
 const paymentAmountEl    = document.getElementById("paymentAmount");
 
 // Urutan grup seperti di toko buku online (Gramedia): QRIS dulu,
-// lalu Virtual Account, E-Wallet, terakhir Kartu.
-const GROUP_ORDER = ["QRIS", "Virtual Account", "E-Wallet", "Kartu"];
+// lalu Virtual Account.
+const GROUP_ORDER = ["QRIS", "Virtual Account"];
 
 // Katalog yang sedang dipakai (dari backend, atau cadangan lokal).
 let paymentMethodsById = new Map();
@@ -98,8 +98,8 @@ function prefillUserData() {
     return;
   }
 
-  buyerNameEl.value     = user.fullName || "";
-  buyerEmailEl.value    = user.email || "";
+  buyerNameEl.value  = user.fullName || user.full_name || "";
+  buyerEmailEl.value = user.email || "";
 }
 
 // ---- Render Ringkasan Pesanan ----
@@ -174,12 +174,6 @@ function hideAlert() {
 // Logo digambar sebagai lencana warna khas tiap merek (bukan file gambar),
 // supaya tetap tampil saat aplikasi dijalankan offline tanpa internet.
 function brandBadgeHTML(method) {
-  if (method.brand === "card") {
-    return `<span class="brand-row">
-      <span class="brand-badge brand-visa">VISA</span>
-      <span class="brand-badge brand-mc"><span class="mc-circle mc-red"></span><span class="mc-circle mc-yellow"></span></span>
-    </span>`;
-  }
   return `<span class="brand-badge brand-${escapeHtml(method.brand)}">${escapeHtml(method.short || method.label)}</span>`;
 }
 
@@ -283,47 +277,17 @@ function updatePaymentDetailForm(methodId) {
       </div>
       ${expiryHint}
     `;
-  } else if (method.kind === "ewallet") {
-    paymentDetailBody.innerHTML = `
-      <div class="payment-detail-info">
-        <span class="payment-detail-badge ewallet">📱 E-Wallet</span>
-        <p class="payment-detail-hint">Kirim pembayaran ke nomor e-wallet toko berikut.</p>
-      </div>
-      <div class="form-group">
-        <label>E-Wallet Tujuan</label>
-        <input type="text" value="${escapeHtml(destination.name || method.label)}" readonly />
-      </div>
-      <div class="form-group">
-        <label>Nomor Tujuan</label>
-        <input type="text" value="${escapeHtml(destination.number || "-")}" readonly />
-      </div>
-      ${expiryHint}
-    `;
   } else if (method.kind === "qris") {
     paymentDetailBody.innerHTML = `
       <div class="payment-detail-info">
         <span class="payment-detail-badge qris">QRIS</span>
-        <p class="payment-detail-hint">Scan dengan GoPay, OVO, DANA, atau m-banking apa pun.</p>
+        <p class="payment-detail-hint">Scan dengan aplikasi m-banking atau pembayaran apa pun yang mendukung QRIS.</p>
       </div>
       <div class="qris-box">
         ${pseudoQrSvg(currentPaymentId)}
         <div class="qris-caption">Kode QR simulasi — bukan kode bayar asli</div>
       </div>
       ${expiryHint}
-    `;
-  } else if (method.kind === "card") {
-    paymentDetailBody.innerHTML = `
-      <div class="payment-detail-info">
-        <span class="payment-detail-badge">Kartu Kredit / Debit</span>
-        <p class="payment-detail-hint">Visa / Mastercard. Pembayaran kartu disimulasikan.</p>
-      </div>
-      <div class="form-group">
-        <span class="brand-row">
-          <span class="brand-badge brand-visa">VISA</span>
-          <span class="brand-badge brand-mc"><span class="mc-circle mc-red"></span><span class="mc-circle mc-yellow"></span></span>
-        </span>
-      </div>
-      <p class="payment-detail-hint">Jangan masukkan nomor kartu asli — aplikasi ini tidak memproses pembayaran sungguhan.</p>
     `;
   } else {
     paymentDetailBody.innerHTML = "";
@@ -367,7 +331,7 @@ function validateForm() {
 }
 
 // ---- Handle Bayar ----
-btnPay.addEventListener("click", async () => {
+btnPay?.addEventListener("click", async () => {
   hideAlert();
 
   const formData = validateForm();
@@ -456,17 +420,22 @@ function updateNavbar() {
   }
 
   if (!authNavContainer) return;
-  if (isAuthenticated()) {
+  if (isAuthenticated() && !isGuest()) {
     const user = getUser();
     const displayName = user?.fullName || user?.username || "Akun Saya";
     authNavContainer.innerHTML = `
-      <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Halo, ${displayName}</span>
+      <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-muted);">Halo, ${escapeHtml(displayName)}</span>
       <button class="btn btn-outline" id="btnLogout" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Keluar</button>
     `;
     document.getElementById("btnLogout")?.addEventListener("click", () => {
       clearAuth();
       window.location.href = "index.html";
     });
+  } else {
+    authNavContainer.innerHTML = `
+      <a href="login.html" class="btn btn-outline">Masuk</a>
+      <a href="register.html" class="btn btn-primary">Daftar</a>
+    `;
   }
 }
 
@@ -479,12 +448,14 @@ if (isCartMode) {
 
   if (!cartItems.length) {
     window.location.href = "cart.html";
+    throw new Error('Redirect to cart');
   }
 }
 
 // Mode buku tunggal tanpa ID (mis. halaman dibuka langsung) tidak bisa checkout.
 if (!isCartMode && !bookData.id) {
   window.location.href = "index.html";
+  throw new Error('Redirect to index');
 }
 
 updateNavbar();
